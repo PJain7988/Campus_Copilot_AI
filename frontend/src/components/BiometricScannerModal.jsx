@@ -5,17 +5,44 @@ import { Fingerprint, ScanFace, X, CheckCircle, Loader2 } from 'lucide-react';
 export default function BiometricScannerModal({ isOpen, onClose, onSuccess }) {
   const [step, setStep] = useState('idle'); // idle, scanning, authenticating, success
   const [scanType, setScanType] = useState('face'); // face or fingerprint
+  const videoRef = React.useRef(null);
+  const streamRef = React.useRef(null);
 
   useEffect(() => {
     if (isOpen) setStep('idle');
+    else stopCamera();
+    
+    // Cleanup on unmount
+    return () => stopCamera();
   }, [isOpen]);
 
-  const startScan = (type) => {
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+  };
+
+  const startScan = async (type) => {
     setScanType(type);
     setStep('scanning');
 
+    if (type === 'face') {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        streamRef.current = stream;
+        // Small delay to ensure video element is rendered
+        setTimeout(() => {
+          if (videoRef.current) videoRef.current.srcObject = stream;
+        }, 100);
+      } catch (err) {
+        console.error("Camera access denied or unavailable", err);
+      }
+    }
+
     setTimeout(() => {
       setStep('authenticating');
+      stopCamera();
       setTimeout(() => {
         setStep('success');
         setTimeout(() => {
@@ -23,7 +50,7 @@ export default function BiometricScannerModal({ isOpen, onClose, onSuccess }) {
           onClose();
         }, 1500);
       }, 1500);
-    }, 2000);
+    }, 4000); // 4 seconds of scanning
   };
 
   if (!isOpen) return null;
@@ -74,19 +101,38 @@ export default function BiometricScannerModal({ isOpen, onClose, onSuccess }) {
             )}
 
             {step === 'scanning' && (
-              <div className="relative w-32 h-32 flex items-center justify-center">
-                {/* Scanner frame */}
-                <div className="absolute inset-0 rounded-2xl border-2 border-brand-500/30" />
-                {/* The icon */}
-                {scanType === 'face' ? <ScanFace className="w-16 h-16 text-brand-500" /> : <Fingerprint className="w-16 h-16 text-emerald-500" />}
+              <div className="relative w-48 h-48 sm:w-56 sm:h-56 flex items-center justify-center overflow-hidden rounded-full border-4 border-brand-500/30 bg-black/20">
+                {scanType === 'face' ? (
+                  <video 
+                    ref={videoRef} 
+                    autoPlay 
+                    playsInline 
+                    muted 
+                    className="absolute inset-0 w-full h-full object-cover transform -scale-x-100"
+                  />
+                ) : (
+                  <Fingerprint className="w-24 h-24 text-emerald-500" />
+                )}
+                
                 {/* The scanning laser */}
                 <motion.div 
                   initial={{ top: 0, opacity: 0 }}
                   animate={{ top: ['0%', '100%', '0%'], opacity: [0, 1, 1, 0] }}
                   transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                  className="absolute left-0 right-0 h-1 bg-brand-400 shadow-[0_0_15px_rgba(99,102,241,0.8)]"
+                  className="absolute left-0 right-0 h-1 bg-brand-400 shadow-[0_0_15px_rgba(99,102,241,1)] z-10"
                 />
-                <p className="absolute -bottom-8 text-sm font-bold animate-pulse" style={{ color: 'var(--text-primary)' }}>Scanning...</p>
+                
+                {/* Face Target Overlay */}
+                {scanType === 'face' && (
+                  <div className="absolute inset-0 z-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(transparent 40%, rgba(0,0,0,0.6) 100%)' }}>
+                    <div className="absolute inset-4 border border-brand-500/30 rounded-full" />
+                    <div className="absolute inset-10 border border-dashed border-brand-500/20 rounded-full animate-spin-slow" />
+                  </div>
+                )}
+                
+                <p className="absolute bottom-6 text-xs font-bold animate-pulse text-white z-20 bg-black/60 px-4 py-1.5 rounded-full border border-white/10">
+                  {scanType === 'face' ? 'Analyzing Facial Metrics...' : 'Scanning Biometric...'}
+                </p>
               </div>
             )}
 
