@@ -120,6 +120,17 @@ export default function StudentDashboard() {
     finally { setBusy(false); }
   };
 
+  const syncBiometric = async () => {
+    setBusy(true); setMessage('');
+    try { 
+      const { data } = await api.post('/activities/sync-biometric', { studentId: student.id });
+      setMessage(`success:${data.message}`);
+      await load();
+    } catch { setMessage('error:Failed to sync biometric data.'); }
+    finally { setBusy(false); }
+  };
+
+
   const switchTab = (id) => {
     setActiveTab(id);
     setMobileMenuOpen(false);
@@ -255,7 +266,7 @@ export default function StudentDashboard() {
                 certificate={certificate} assessment={assessment}
                 recommendations={recommendations}
                 onRunAssessment={runAssessment} onGoLog={() => switchTab('log')}
-                onViewAll={() => switchTab('activities')} busy={busy}
+                onViewAll={() => switchTab('activities')} onSyncBiometric={syncBiometric} busy={busy} message={message}
               />
             )}
 
@@ -309,7 +320,7 @@ export default function StudentDashboard() {
 
 /* ═══════════════════════ TAB PANELS ══════════════════════════════════════ */
 
-function DashboardTab({ approved, pending, activities, certificate, assessment, recommendations, onRunAssessment, onGoLog, onViewAll, busy }) {
+function DashboardTab({ approved, pending, activities, certificate, assessment, recommendations, onRunAssessment, onGoLog, onViewAll, onSyncBiometric, busy, message }) {
   const statCards = [
     { icon: CheckCircle, label: 'Verified Activities', value: approved.length,    delta: `${pending.length} pending`,   color: '#10b981', bg: 'rgba(16,185,129,0.08)',  border: 'rgba(16,185,129,0.2)' },
     { icon: Clock,       label: 'Pending Review',      value: pending.length,     delta: 'Awaiting faculty',            color: '#f59e0b', bg: 'rgba(245,158,11,0.08)',  border: 'rgba(245,158,11,0.2)' },
@@ -319,7 +330,19 @@ function DashboardTab({ approved, pending, activities, certificate, assessment, 
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-end gap-3 mb-2">
+        <button onClick={onSyncBiometric} disabled={busy} className="btn-primary flex items-center gap-2 text-xs py-2 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 border border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+          {busy ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
+          Sync Biometric Scanners
+        </button>
+      </div>
+      {message && message.startsWith('success:Successfully synced') && (
+        <div className="p-3 rounded-lg text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mb-4">
+          {message.replace('success:', '')}
+        </div>
+      )}
       {/* Stat cards — 2 cols on mobile, 4 on desktop */}
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {statCards.map((s, i) => {
           const SIcon = s.icon;
