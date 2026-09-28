@@ -492,6 +492,12 @@ function ActivitiesTab({ approved, pending, rejected, activities, filtered, filt
                   <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Year {a.academic_year}</span>
                   {a.activity_date && <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{a.activity_date}</span>}
                   {a.duration_hours > 0 && <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{a.duration_hours}h</span>}
+                  {a.evidence_path && (
+                    <span className="text-[11px] px-2 py-0.5 rounded-md font-medium border flex items-center gap-1"
+                      style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981', borderColor: 'rgba(16,185,129,0.2)' }}>
+                      <FileText className="w-3 h-3" /> Evidence
+                    </span>
+                  )}
                 </div>
                 {/* Rich detail chips */}
                 {a.details && (
@@ -512,6 +518,18 @@ function ActivitiesTab({ approved, pending, rejected, activities, filtered, filt
                     {a.details.booksCompleted     && <InfoChip label={`${a.details.booksCompleted} Books`} prefix="📚" />}
                     {a.details.certifications     && <InfoChip label={`${a.details.certifications} Certs`} prefix="🏅" />}
                     {a.details.onlineCourses      && <InfoChip label={`${a.details.onlineCourses} Courses`} prefix="💻" />}
+                    
+                    {a.details.technicalProjects  && <InfoChip label={`${a.details.technicalProjects} Projects`} prefix="💻" />}
+                    {a.details.hackathons         && <InfoChip label={`${a.details.hackathons} Hackathons`} prefix="🏆" />}
+                    {a.details.openSourceContributions && <InfoChip label={`${a.details.openSourceContributions} OS Contribs`} prefix="🐙" />}
+                    
+                    {a.details.sportsName         && <InfoChip label={a.details.sportsName} prefix="⚽" />}
+                    {a.details.sportsCompetitions && <InfoChip label={`${a.details.sportsCompetitions} Competitions`} prefix="🏅" />}
+                    
+                    {a.details.culturalEvents     && <InfoChip label={`${a.details.culturalEvents} Events`} prefix="🎭" />}
+                    {a.details.leadershipRole     && <InfoChip label={a.details.leadershipRole} prefix="👑" />}
+                    {a.details.volunteerHours     && <InfoChip label={`${a.details.volunteerHours} Vol. Hours`} prefix="🤝" />}
+                    {a.details.teamProjects       && <InfoChip label={`${a.details.teamProjects} Team Projects`} prefix="👥" />}
                   </div>
                 )}
               </div>
@@ -899,21 +917,28 @@ function LogActivityForm({ categories, onSuccess, academicYear }) {
   const [selectedCat, setSelectedCat] = useState(null);
   const [busy,        setBusy]        = useState(false);
   const [error,       setError]       = useState('');
+  const [evidenceFile, setEvidenceFile] = useState(null);
   const [form,        setForm]        = useState({
     title: '', description: '', activityDate: new Date().toISOString().split('T')[0],
     academicYear: academicYear || 1, durationHours: '', role: '', achievement: '',
     bookTitle: '', author: '', pagesRead: '', topic: '', visitPurpose: 'study',
     attendancePercent: '', totalClasses: '', attended: '', participationType: 'Regular attendance',
-    sport: '', trainingType: 'Practice', coach: '', skillsLearned: '',
     gameName: '', gameLevel: 'Beginner', gameSkills: '',
     eventName: '', eventLevel: 'College', eventOutcome: '',
-    organization: '', serviceHours: '', beneficiaries: '',
+    sportsName: '', practiceSessions: '', sportsDuration: '', sportsCompetitions: '', interCollegeCompetitions: '', universityCompetitions: '', sportsTeamParticipation: '',
+    culturalEvents: '', danceMusicDrama: '', culturalDebates: '', photographyEvents: '', artExhibitions: '', writingPoetry: '', culturalFestivals: '',
+    leadershipRole: '', leadershipDuration: '', eventsOrganized: '', studentsMentored: '', projectsLed: '',
+    volunteerHours: '', ngoActivities: '', communityCampaigns: '', bloodDonations: '', environmentalActivities: '', cleanlinessDrives: '', teachingUnderprivileged: '', socialCampaigns: '',
+    teamProjects: '', groupAssignments: '', peerMentoring: '',
     academicAttendance: '', academicClasses: '', assignmentsCompleted: '', internalAssessments: '',
     semesterResults: '', projectSubmissions: '', presentations: '', vivaPerformance: '',
     academicCompetitions: '', researchActivities: '',
     libraryVisits: '', booksBorrowed: '', booksCompleted: '', readingDuration: '',
     technicalBooks: '', nonFictionBooks: '', researchPapersRead: '', onlineCourses: '',
     certifications: '', workshops: '', seminars: '',
+    technicalProjects: '', hackathons: '', codingCompetitions: '', technicalFests: '',
+    githubActivity: '', openSourceContributions: '', technicalWorkshops: '', technicalPresentations: '',
+    internships: '', techCertifications: '', techResearchProjects: '', codingClubs: '', competitiveProgramming: '',
   });
 
   const F = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -938,11 +963,44 @@ function LogActivityForm({ categories, onSuccess, academicYear }) {
         researchPapersRead: +form.researchPapersRead || null, onlineCourses: +form.onlineCourses || null,
         certifications: +form.certifications || null, workshops: +form.workshops || null, seminars: +form.seminars || null
       };
+      case 'technical': return {
+        technicalProjects: +form.technicalProjects || null, hackathons: +form.hackathons || null,
+        codingCompetitions: +form.codingCompetitions || null, technicalFests: +form.technicalFests || null,
+        githubActivity: form.githubActivity, openSourceContributions: +form.openSourceContributions || null,
+        technicalWorkshops: +form.technicalWorkshops || null, technicalPresentations: +form.technicalPresentations || null,
+        internships: +form.internships || null, techCertifications: +form.techCertifications || null,
+        techResearchProjects: +form.techResearchProjects || null, codingClubs: +form.codingClubs || null,
+        competitiveProgramming: +form.competitiveProgramming || null
+      };
       case 'classroom': return { attendancePercent: +form.attendancePercent || null, totalClasses: +form.totalClasses || null, attended: +form.attended || null, participationType: form.participationType };
-      case 'sports':    return { sport: form.sport, trainingType: form.trainingType, coach: form.coach, skillsLearned: form.skillsLearned ? form.skillsLearned.split(',').map(s => s.trim()) : [] };
+      case 'sports': return {
+        sportsName: form.sportsName, practiceSessions: form.practiceSessions, sportsDuration: form.sportsDuration,
+        sportsCompetitions: +form.sportsCompetitions || null, interCollegeCompetitions: +form.interCollegeCompetitions || null,
+        universityCompetitions: +form.universityCompetitions || null, sportsTeamParticipation: form.sportsTeamParticipation
+      };
+      case 'cultural': return {
+        culturalEvents: +form.culturalEvents || null, danceMusicDrama: +form.danceMusicDrama || null,
+        culturalDebates: +form.culturalDebates || null, photographyEvents: +form.photographyEvents || null,
+        artExhibitions: +form.artExhibitions || null, writingPoetry: +form.writingPoetry || null,
+        culturalFestivals: +form.culturalFestivals || null
+      };
+      case 'leadership': return {
+        leadershipRole: form.leadershipRole, leadershipDuration: form.leadershipDuration,
+        eventsOrganized: +form.eventsOrganized || null, studentsMentored: +form.studentsMentored || null,
+        projectsLed: +form.projectsLed || null
+      };
+      case 'social': return {
+        volunteerHours: +form.volunteerHours || null, ngoActivities: +form.ngoActivities || null,
+        communityCampaigns: +form.communityCampaigns || null, bloodDonations: +form.bloodDonations || null,
+        environmentalActivities: +form.environmentalActivities || null, cleanlinessDrives: +form.cleanlinessDrives || null,
+        teachingUnderprivileged: +form.teachingUnderprivileged || null, socialCampaigns: +form.socialCampaigns || null
+      };
+      case 'teamwork': return {
+        teamProjects: +form.teamProjects || null, groupAssignments: +form.groupAssignments || null,
+        peerMentoring: +form.peerMentoring || null
+      };
       case 'games':     return { gameName: form.gameName, level: form.gameLevel, skillsLearned: form.gameSkills ? form.gameSkills.split(',').map(s => s.trim()) : [] };
       case 'events':    return { eventName: form.eventName, eventLevel: form.eventLevel, role: form.role, outcome: form.eventOutcome };
-      case 'social':    return { organization: form.organization, serviceHours: +form.serviceHours || null, beneficiaries: form.beneficiaries };
       default:          return null;
     }
   };
@@ -952,11 +1010,20 @@ function LogActivityForm({ categories, onSuccess, academicYear }) {
     try {
       const catObj = categories.find(c => c.name === selectedCat?.id);
       if (!catObj) throw new Error('Category not found. Please refresh and try again.');
-      await api.post('/activities', {
-        categoryId: catObj.id, title: form.title, description: form.description,
-        activityDate: form.activityDate, academicYear: form.academicYear,
-        durationHours: form.durationHours || 0, role: form.role,
-        achievement: form.achievement, detailsJson: buildDetails(),
+      const formData = new FormData();
+      formData.append('categoryId', catObj.id);
+      formData.append('title', form.title);
+      formData.append('description', form.description);
+      formData.append('activityDate', form.activityDate);
+      formData.append('academicYear', form.academicYear);
+      formData.append('durationHours', form.durationHours || 0);
+      if (form.role) formData.append('role', form.role);
+      if (form.achievement) formData.append('achievement', form.achievement);
+      formData.append('detailsJson', JSON.stringify(buildDetails() || {}));
+      if (evidenceFile) formData.append('evidence', evidenceFile);
+
+      await api.post('/activities', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
       onSuccess();
     } catch (e) { setError(e.response?.data?.message || e.message || 'Failed to submit.'); }
@@ -981,18 +1048,24 @@ function LogActivityForm({ categories, onSuccess, academicYear }) {
     (selectedCat?.id === 'learning' || selectedCat?.id === 'library') && form.libraryVisits ? ['Library Visits', form.libraryVisits] : null,
     (selectedCat?.id === 'learning' || selectedCat?.id === 'library') && form.booksCompleted ? ['Books Read', form.booksCompleted]   : null,
     (selectedCat?.id === 'learning' || selectedCat?.id === 'library') && form.certifications ? ['Certifications', form.certifications] : null,
+    selectedCat?.id === 'technical' && form.technicalProjects ? ['Tech Projects', form.technicalProjects] : null,
+    selectedCat?.id === 'technical' && form.hackathons        ? ['Hackathons', form.hackathons] : null,
+    selectedCat?.id === 'technical' && form.openSourceContributions ? ['OS Contribs', form.openSourceContributions] : null,
+    selectedCat?.id === 'technical' && form.githubActivity    ? ['GitHub', form.githubActivity] : null,
+    selectedCat?.id === 'technical' && form.techCertifications ? ['Tech Certs', form.techCertifications] : null,
     selectedCat?.id === 'classroom' && form.attendancePercent  ? ['Attendance', `${form.attendancePercent}%`]              : null,
     selectedCat?.id === 'classroom' && form.totalClasses       ? ['Classes',    `${form.attended}/${form.totalClasses}`]   : null,
-    selectedCat?.id === 'sports'    && form.sport              ? ['Sport',      form.sport]                                : null,
-    selectedCat?.id === 'sports'    && form.trainingType       ? ['Type',       form.trainingType]                         : null,
-    selectedCat?.id === 'sports'    && form.skillsLearned      ? ['Skills',     form.skillsLearned]                        : null,
+    selectedCat?.id === 'sports'    && form.sportsName         ? ['Sport',      form.sportsName]                           : null,
+    selectedCat?.id === 'sports'    && form.sportsCompetitions ? ['Competitions', form.sportsCompetitions]                 : null,
+    selectedCat?.id === 'cultural'  && form.culturalEvents     ? ['Cultural Evts', form.culturalEvents]                    : null,
+    selectedCat?.id === 'leadership' && form.leadershipRole    ? ['Leadership', form.leadershipRole]                       : null,
+    selectedCat?.id === 'social'    && form.volunteerHours     ? ['Vol. Hours', form.volunteerHours]                       : null,
+    selectedCat?.id === 'teamwork'  && form.teamProjects       ? ['Team Projects', form.teamProjects]                      : null,
     selectedCat?.id === 'games'     && form.gameName           ? ['Game',       form.gameName]                             : null,
     selectedCat?.id === 'games'     && form.gameSkills         ? ['Skills',     form.gameSkills]                           : null,
     selectedCat?.id === 'events'    && form.eventName          ? ['Event',      form.eventName]                            : null,
     selectedCat?.id === 'events'    && form.eventLevel         ? ['Level',      form.eventLevel]                           : null,
     selectedCat?.id === 'events'    && form.eventOutcome       ? ['Outcome',    form.eventOutcome]                         : null,
-    selectedCat?.id === 'social'    && form.organization       ? ['Organization', form.organization]                       : null,
-    selectedCat?.id === 'social'    && form.serviceHours       ? ['Service Hrs', form.serviceHours]                        : null,
   ].filter(Boolean);
 
   return (
@@ -1148,6 +1221,33 @@ function LogActivityForm({ categories, onSuccess, academicYear }) {
                   </FormField>
                 </FieldGroup>
               )}
+              {selectedCat.id === 'technical' && (
+                <FieldGroup label="💻 Technical Portfolio" color={catMeta?.color}>
+                  <div className="grid grid-cols-3 gap-3">
+                    <FormField label="Projects"><input type="number" className="input" value={form.technicalProjects} onChange={e => F('technicalProjects', e.target.value)} placeholder="8" /></FormField>
+                    <FormField label="Hackathons"><input type="number" className="input" value={form.hackathons} onChange={e => F('hackathons', e.target.value)} placeholder="5" /></FormField>
+                    <FormField label="Open Source"><input type="number" className="input" value={form.openSourceContributions} onChange={e => F('openSourceContributions', e.target.value)} placeholder="23" /></FormField>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormField label="GitHub Activity"><input className="input" value={form.githubActivity} onChange={e => F('githubActivity', e.target.value)} placeholder="e.g. 500 commits" /></FormField>
+                    <FormField label="Coding Competitions"><input type="number" className="input" value={form.codingCompetitions} onChange={e => F('codingCompetitions', e.target.value)} placeholder="3" /></FormField>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <FormField label="Tech Fests"><input type="number" className="input" value={form.technicalFests} onChange={e => F('technicalFests', e.target.value)} placeholder="2" /></FormField>
+                    <FormField label="Workshops"><input type="number" className="input" value={form.technicalWorkshops} onChange={e => F('technicalWorkshops', e.target.value)} placeholder="12" /></FormField>
+                    <FormField label="Presentations"><input type="number" className="input" value={form.technicalPresentations} onChange={e => F('technicalPresentations', e.target.value)} placeholder="6" /></FormField>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <FormField label="Internships"><input type="number" className="input" value={form.internships} onChange={e => F('internships', e.target.value)} placeholder="2" /></FormField>
+                    <FormField label="Certifications"><input type="number" className="input" value={form.techCertifications} onChange={e => F('techCertifications', e.target.value)} placeholder="9" /></FormField>
+                    <FormField label="Research Projects"><input type="number" className="input" value={form.techResearchProjects} onChange={e => F('techResearchProjects', e.target.value)} placeholder="1" /></FormField>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormField label="Coding Clubs"><input type="number" className="input" value={form.codingClubs} onChange={e => F('codingClubs', e.target.value)} placeholder="1" /></FormField>
+                    <FormField label="Competitive Programming"><input type="number" className="input" value={form.competitiveProgramming} onChange={e => F('competitiveProgramming', e.target.value)} placeholder="5" /></FormField>
+                  </div>
+                </FieldGroup>
+              )}
 
               {selectedCat.id === 'classroom' && (
                 <FieldGroup label="🏫 Classroom Details" color={catMeta?.color}>
@@ -1165,21 +1265,62 @@ function LogActivityForm({ categories, onSuccess, academicYear }) {
               )}
 
               {selectedCat.id === 'sports' && (
-                <FieldGroup label="⚽ Sports Details" color={catMeta?.color}>
+                <FieldGroup label="⚽ Sports & Physical Activities" color={catMeta?.color}>
                   <div className="grid grid-cols-2 gap-3">
-                    <FormField label="Sport Name"><input className="input" value={form.sport} onChange={e => F('sport', e.target.value)} placeholder="Badminton, Cricket…" /></FormField>
-                    <FormField label="Training Type">
-                      <select className="input" value={form.trainingType} onChange={e => F('trainingType', e.target.value)}>
-                        {['Practice', 'Match', 'Tournament', 'Coaching', 'Fitness', 'Competition'].map(v => <option key={v} value={v}>{v}</option>)}
-                      </select>
-                    </FormField>
+                    <FormField label="Sport Name"><input className="input" value={form.sportsName} onChange={e => F('sportsName', e.target.value)} placeholder="Badminton, Cricket…" /></FormField>
+                    <FormField label="Practice Sessions"><input className="input" value={form.practiceSessions} onChange={e => F('practiceSessions', e.target.value)} placeholder="e.g. 3 times/week" /></FormField>
                   </div>
-                  <FormField label="Skills Learned (comma-separated)">
-                    <input className="input" value={form.skillsLearned} onChange={e => F('skillsLearned', e.target.value)} placeholder="e.g. smash, footwork" />
-                  </FormField>
-                  <FormField label="Coach / Trainer (optional)">
-                    <input className="input" value={form.coach} onChange={e => F('coach', e.target.value)} placeholder="Mr. Sharma" />
-                  </FormField>
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormField label="Duration"><input className="input" value={form.sportsDuration} onChange={e => F('sportsDuration', e.target.value)} placeholder="e.g. 2 years" /></FormField>
+                    <FormField label="Team Participation"><input className="input" value={form.sportsTeamParticipation} onChange={e => F('sportsTeamParticipation', e.target.value)} placeholder="e.g. College Team" /></FormField>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <FormField label="Competitions"><input type="number" className="input" value={form.sportsCompetitions} onChange={e => F('sportsCompetitions', e.target.value)} placeholder="8" /></FormField>
+                    <FormField label="Inter-College"><input type="number" className="input" value={form.interCollegeCompetitions} onChange={e => F('interCollegeCompetitions', e.target.value)} placeholder="3" /></FormField>
+                    <FormField label="University"><input type="number" className="input" value={form.universityCompetitions} onChange={e => F('universityCompetitions', e.target.value)} placeholder="1" /></FormField>
+                  </div>
+                </FieldGroup>
+              )}
+
+              {selectedCat.id === 'cultural' && (
+                <FieldGroup label="🎭 Cultural Activities" color={catMeta?.color}>
+                  <div className="grid grid-cols-3 gap-3">
+                    <FormField label="Cultural Events"><input type="number" className="input" value={form.culturalEvents} onChange={e => F('culturalEvents', e.target.value)} placeholder="15" /></FormField>
+                    <FormField label="Dance/Music/Drama"><input type="number" className="input" value={form.danceMusicDrama} onChange={e => F('danceMusicDrama', e.target.value)} placeholder="4" /></FormField>
+                    <FormField label="Debates"><input type="number" className="input" value={form.culturalDebates} onChange={e => F('culturalDebates', e.target.value)} placeholder="7" /></FormField>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormField label="Photography Events"><input type="number" className="input" value={form.photographyEvents} onChange={e => F('photographyEvents', e.target.value)} placeholder="5" /></FormField>
+                    <FormField label="Art Exhibitions"><input type="number" className="input" value={form.artExhibitions} onChange={e => F('artExhibitions', e.target.value)} placeholder="2" /></FormField>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormField label="Writing/Poetry"><input type="number" className="input" value={form.writingPoetry} onChange={e => F('writingPoetry', e.target.value)} placeholder="3" /></FormField>
+                    <FormField label="Cultural Festivals"><input type="number" className="input" value={form.culturalFestivals} onChange={e => F('culturalFestivals', e.target.value)} placeholder="2" /></FormField>
+                  </div>
+                </FieldGroup>
+              )}
+
+              {selectedCat.id === 'leadership' && (
+                <FieldGroup label="👑 Leadership Activities" color={catMeta?.color}>
+                  <div className="grid grid-cols-2 gap-3">
+                    <FormField label="Leadership Role"><input className="input" value={form.leadershipRole} onChange={e => F('leadershipRole', e.target.value)} placeholder="Club Coordinator, Class Rep" /></FormField>
+                    <FormField label="Duration"><input className="input" value={form.leadershipDuration} onChange={e => F('leadershipDuration', e.target.value)} placeholder="e.g. 8 months" /></FormField>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <FormField label="Events Organized"><input type="number" className="input" value={form.eventsOrganized} onChange={e => F('eventsOrganized', e.target.value)} placeholder="5" /></FormField>
+                    <FormField label="Students Mentored"><input type="number" className="input" value={form.studentsMentored} onChange={e => F('studentsMentored', e.target.value)} placeholder="12" /></FormField>
+                    <FormField label="Projects Led"><input type="number" className="input" value={form.projectsLed} onChange={e => F('projectsLed', e.target.value)} placeholder="6" /></FormField>
+                  </div>
+                </FieldGroup>
+              )}
+
+              {selectedCat.id === 'teamwork' && (
+                <FieldGroup label="🤝 Teamwork" color={catMeta?.color}>
+                  <div className="grid grid-cols-3 gap-3">
+                    <FormField label="Team Projects"><input type="number" className="input" value={form.teamProjects} onChange={e => F('teamProjects', e.target.value)} placeholder="14" /></FormField>
+                    <FormField label="Group Assignments"><input type="number" className="input" value={form.groupAssignments} onChange={e => F('groupAssignments', e.target.value)} placeholder="8" /></FormField>
+                    <FormField label="Peer Mentoring"><input type="number" className="input" value={form.peerMentoring} onChange={e => F('peerMentoring', e.target.value)} placeholder="12" /></FormField>
+                  </div>
                 </FieldGroup>
               )}
 
@@ -1218,13 +1359,20 @@ function LogActivityForm({ categories, onSuccess, academicYear }) {
               )}
 
               {selectedCat.id === 'social' && (
-                <FieldGroup label="🌍 Social Service" color={catMeta?.color}>
-                  <FormField label="Organization / Initiative">
-                    <input className="input" value={form.organization} onChange={e => F('organization', e.target.value)} placeholder="Red Cross, NSS…" />
-                  </FormField>
+                <FieldGroup label="🌍 Social & Community Activities" color={catMeta?.color}>
+                  <div className="grid grid-cols-3 gap-3">
+                    <FormField label="Volunteer Hours"><input type="number" className="input" value={form.volunteerHours} onChange={e => F('volunteerHours', e.target.value)} placeholder="84" /></FormField>
+                    <FormField label="Community Campaigns"><input type="number" className="input" value={form.communityCampaigns} onChange={e => F('communityCampaigns', e.target.value)} placeholder="11" /></FormField>
+                    <FormField label="NGO Activities"><input type="number" className="input" value={form.ngoActivities} onChange={e => F('ngoActivities', e.target.value)} placeholder="3" /></FormField>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3">
+                    <FormField label="Environmental Activities"><input type="number" className="input" value={form.environmentalActivities} onChange={e => F('environmentalActivities', e.target.value)} placeholder="6" /></FormField>
+                    <FormField label="Cleanliness Drives"><input type="number" className="input" value={form.cleanlinessDrives} onChange={e => F('cleanlinessDrives', e.target.value)} placeholder="4" /></FormField>
+                    <FormField label="Teaching Underprivileged"><input type="number" className="input" value={form.teachingUnderprivileged} onChange={e => F('teachingUnderprivileged', e.target.value)} placeholder="20" /></FormField>
+                  </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <FormField label="Service Hours"><input type="number" className="input" value={form.serviceHours} onChange={e => F('serviceHours', e.target.value)} placeholder="8" /></FormField>
-                    <FormField label="Beneficiaries"><input className="input" value={form.beneficiaries} onChange={e => F('beneficiaries', e.target.value)} placeholder="50 students" /></FormField>
+                    <FormField label="Social Campaigns"><input type="number" className="input" value={form.socialCampaigns} onChange={e => F('socialCampaigns', e.target.value)} placeholder="2" /></FormField>
+                    <FormField label="Blood Donations"><input type="number" className="input" value={form.bloodDonations} onChange={e => F('bloodDonations', e.target.value)} placeholder="1" /></FormField>
                   </div>
                 </FieldGroup>
               )}
@@ -1238,6 +1386,16 @@ function LogActivityForm({ categories, onSuccess, academicYear }) {
               <FormField label="Description (optional)">
                 <textarea className="input" rows={2} value={form.description}
                   onChange={e => F('description', e.target.value)} placeholder="Brief description…" />
+              </FormField>
+
+              <FormField label="Evidence Document (PDF/Image)">
+                <input 
+                  type="file" 
+                  className="input p-2 text-xs file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100 cursor-pointer"
+                  accept=".pdf,image/*" 
+                  onChange={e => setEvidenceFile(e.target.files[0])}
+                />
+                {evidenceFile && <p className="text-[10px] text-emerald-500 font-medium mt-1">Attached: {evidenceFile.name}</p>}
               </FormField>
             </div>
 
@@ -1318,11 +1476,14 @@ function ActivityStats({ activities }) {
     if (!cls.length) return null;
     return Math.round(cls.reduce((s, a) => s + (a.details.attendancePercent || a.details.academicAttendance), 0) / cls.length);
   })();
-  const socialHrs = activities.filter(a => a.category_name === 'social').reduce((s, a) => s + (+a.details?.serviceHours || 0), 0);
+  const socialHrs = activities.filter(a => a.category_name === 'social').reduce((s, a) => s + (+a.details?.serviceHours || 0) + (+a.details?.volunteerHours || 0), 0);
 
-  const totalProjects = activities.filter(a => a.category_name === 'academic').reduce((s, a) => s + (a.details?.projectSubmissions || 0), 0);
-  const totalCerts = activities.filter(a => a.category_name === 'learning' || a.category_name === 'library').reduce((s, a) => s + (a.details?.certifications || 0), 0);
+  const totalProjects = activities.reduce((s, a) => s + (a.details?.projectSubmissions || 0) + (a.details?.technicalProjects || 0), 0);
+  const totalCerts = activities.reduce((s, a) => s + (a.details?.certifications || 0) + (a.details?.techCertifications || 0), 0);
   const booksRead = activities.filter(a => a.category_name === 'learning' || a.category_name === 'library').reduce((s, a) => s + (a.details?.booksCompleted || 0), 0);
+  const totalHackathons = activities.filter(a => a.category_name === 'technical').reduce((s, a) => s + (a.details?.hackathons || 0), 0);
+  const totalOS = activities.filter(a => a.category_name === 'technical').reduce((s, a) => s + (a.details?.openSourceContributions || 0), 0);
+  const totalLeadershipRoles = activities.filter(a => a.category_name === 'leadership').filter(a => a.details?.leadershipRole).length;
 
   const byCat = CATEGORIES.map(cat => ({
     ...cat,
@@ -1345,7 +1506,11 @@ function ActivityStats({ activities }) {
           { icon: BookOpen,    label: 'Books Read',      value: booksRead,               sub: 'Total',          color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)' },
           { icon: School,      label: 'Avg Attendance',  value: avgAtt ? `${avgAtt}%` : '—', sub: 'Classroom',      color: '#6366f1', bg: 'rgba(99,102,241,0.08)', border: 'rgba(99,102,241,0.2)' },
           { icon: Award,       label: 'Certifications',  value: totalCerts,              sub: 'Total',          color: '#10b981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.2)' },
-          { icon: FileText,    label: 'Projects',        value: totalProjects,           sub: 'Academic',       color: '#ec4899', bg: 'rgba(236,72,153,0.08)', border: 'rgba(236,72,153,0.2)' },
+          { icon: FileText,    label: 'Projects',        value: totalProjects,           sub: 'Academic & Tech', color: '#ec4899', bg: 'rgba(236,72,153,0.08)', border: 'rgba(236,72,153,0.2)' },
+          { icon: Trophy,      label: 'Hackathons',      value: totalHackathons,         sub: 'Total',          color: '#06b6d4', bg: 'rgba(6,182,212,0.08)',  border: 'rgba(6,182,212,0.2)' },
+          { icon: Globe,       label: 'OS Contribs',     value: totalOS,                 sub: 'Open Source',    color: '#8b5cf6', bg: 'rgba(139,92,246,0.08)', border: 'rgba(139,92,246,0.2)' },
+          { icon: Users,       label: 'Leadership',      value: totalLeadershipRoles,    sub: 'Roles Held',     color: '#f43f5e', bg: 'rgba(244,63,94,0.08)',  border: 'rgba(244,63,94,0.2)' },
+          { icon: Heart,       label: 'Volunteering',    value: `${socialHrs}h`,         sub: 'Social Impact',  color: '#14b8a6', bg: 'rgba(20,184,166,0.08)', border: 'rgba(20,184,166,0.2)' },
         ].map((s, i) => {
           const SIcon = s.icon;
           return (

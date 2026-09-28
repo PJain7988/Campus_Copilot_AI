@@ -164,6 +164,18 @@ function computeAssessment(studentId, opts = {}) {
       } catch {}
     }
     
+    // Classroom KPIs
+    if (act.category_name === 'classroom') {
+      try {
+        const d = JSON.parse(act.details_json || '{}');
+        if (d.attendancePercent >= 95) bonus += 25;
+        else if (d.attendancePercent >= 85) bonus += 15;
+        else if (d.attendancePercent >= 75) bonus += 5;
+        
+        if (d.participationType && d.participationType.includes('Active')) bonus += 10;
+      } catch {}
+    }
+
     // Academic KPIs
     if (act.category_name === 'academic') {
       try {
@@ -171,12 +183,122 @@ function computeAssessment(studentId, opts = {}) {
         if (d.academicAttendance >= 90) bonus += 20;
         else if (d.academicAttendance >= 75) bonus += 10;
         
+        if (d.assignmentsCompleted >= 95) bonus += 25;
+        else if (d.assignmentsCompleted >= 80) bonus += 15;
+        
         if (d.projectSubmissions) {
           bonus += d.projectSubmissions * 15;
           ev.academic_engagement.projects = (ev.academic_engagement.projects || 0) + d.projectSubmissions;
         }
         if (d.presentations) bonus += d.presentations * 5;
         if (d.researchActivities) bonus += d.researchActivities * 25;
+      } catch {}
+    }
+
+    // Technical KPIs
+    if (act.category_name === 'technical') {
+      try {
+        const d = JSON.parse(act.details_json || '{}');
+        if (d.technicalProjects) {
+          bonus += d.technicalProjects * 15;
+          ev.technical_engagement.projects = (ev.technical_engagement.projects || 0) + d.technicalProjects;
+        }
+        if (d.hackathons) {
+          bonus += d.hackathons * 20;
+          ev.technical_engagement.projects = (ev.technical_engagement.projects || 0) + d.hackathons;
+        }
+        if (d.openSourceContributions) bonus += d.openSourceContributions * 5; 
+        if (d.codingCompetitions) bonus += d.codingCompetitions * 10;
+        
+        if (d.githubActivity) {
+           const matches = d.githubActivity.match(/\d+/g);
+           if (matches) {
+              const maxNum = Math.max(...matches.map(Number));
+              if (maxNum > 100) bonus += 25; 
+           } else {
+              bonus += 5; 
+           }
+        }
+        
+        if (d.techCertifications) bonus += d.techCertifications * 15;
+        if (d.technicalWorkshops) bonus += d.technicalWorkshops * 5;
+        if (d.technicalPresentations) bonus += d.technicalPresentations * 10;
+        if (d.internships) bonus += d.internships * 30;
+        if (d.techResearchProjects) bonus += d.techResearchProjects * 25;
+        if (d.competitiveProgramming) bonus += d.competitiveProgramming * 15;
+      } catch {}
+    }
+
+    // Final 5 Categories
+    if (['sports', 'cultural', 'leadership', 'social', 'teamwork'].includes(act.category_name)) {
+      try {
+        const d = JSON.parse(act.details_json || '{}');
+        // Sports
+        if (d.practiceSessions) bonus += 5;
+        if (d.sportsCompetitions) bonus += d.sportsCompetitions * 10;
+        if (d.interCollegeCompetitions) bonus += d.interCollegeCompetitions * 15;
+        if (d.universityCompetitions) bonus += d.universityCompetitions * 20;
+        
+        // Cultural
+        if (d.culturalEvents) bonus += d.culturalEvents * 5;
+        if (d.danceMusicDrama) bonus += d.danceMusicDrama * 10;
+        if (d.culturalDebates) bonus += d.culturalDebates * 12;
+        if (d.artExhibitions) bonus += d.artExhibitions * 10;
+        if (d.writingPoetry) bonus += d.writingPoetry * 10;
+        if (d.culturalFestivals) bonus += d.culturalFestivals * 15;
+        
+        // Leadership
+        if (d.leadershipRole) {
+           bonus += 10;
+           if (d.leadershipDuration) {
+              const durMatches = d.leadershipDuration.match(/\d+/g);
+              if (durMatches) {
+                 const num = Math.max(...durMatches.map(Number));
+                 bonus += num * 2; 
+              }
+           }
+        }
+        if (d.eventsOrganized) bonus += d.eventsOrganized * 15;
+        if (d.studentsMentored) bonus += d.studentsMentored * 5;
+        if (d.projectsLed) bonus += d.projectsLed * 15;
+        
+        // Social
+        if (d.volunteerHours) bonus += d.volunteerHours * 2; 
+        if (d.communityCampaigns) bonus += d.communityCampaigns * 10;
+        if (d.ngoActivities) bonus += d.ngoActivities * 15;
+        if (d.environmentalActivities) bonus += d.environmentalActivities * 10;
+        if (d.teachingUnderprivileged) bonus += d.teachingUnderprivileged * 5;
+        if (d.bloodDonations) bonus += d.bloodDonations * 15;
+        
+        // Teamwork
+        if (d.teamProjects) bonus += d.teamProjects * 10;
+        if (d.groupAssignments) bonus += d.groupAssignments * 5;
+        if (d.peerMentoring) bonus += d.peerMentoring * 10;
+      } catch {}
+    }
+
+    if (act.category_name === 'games') {
+      try {
+        const d = JSON.parse(act.details_json || '{}');
+        if (d.gameName) bonus += 5;
+        if (d.level) {
+          if (d.level === 'Expert') bonus += 25;
+          else if (d.level === 'Advanced') bonus += 15;
+          else if (d.level === 'Intermediate') bonus += 10;
+          else bonus += 5;
+        }
+        if (d.skillsLearned && Array.isArray(d.skillsLearned)) {
+          bonus += d.skillsLearned.length * 5;
+        }
+      } catch {}
+    }
+
+    if (act.category_name === 'events') {
+      try {
+        const d = JSON.parse(act.details_json || '{}');
+        if (d.eventName) bonus += 5;
+        if (d.role && d.role !== 'Participant') bonus += 15;
+        if (d.outcome) bonus += 20;
       } catch {}
     }
 

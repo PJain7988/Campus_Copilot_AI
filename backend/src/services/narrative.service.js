@@ -1,40 +1,43 @@
 /**
  * Template-based narrative generation (Section 24: "LLM Integration").
  *
- * The brief is explicit that an LLM should generate the *prose*, never the
- * *scores* — "ML/Rules -> Evidence-based assessment -> LLM -> Professional
- * narrative". This module is a deterministic, dependency-free stand-in for
- * that LLM call, built from the same structured evidence an LLM prompt would
- * receive. Swap `buildNarrative` for a real LLM API call (see
- * docs/ARCHITECTURE.md § LLM Integration) without touching anything upstream —
- * the scoring pipeline stays identical either way.
+ * This module is a deterministic, dependency-free stand-in for an LLM call.
+ * It builds a rich, evidence-based narrative suitable for a character certificate.
  */
 function buildNarrative(assessment, evidenceCounts) {
   const top = assessment.strengths;
   const focus = assessment.developmentAreas.filter(d => assessment.scores[d] < 70);
 
   const strengthPhrase = top.length
-    ? `demonstrated consistent engagement across ${top.join(', ')} activities`
-    : 'begun building a verified activity record';
+    ? `has demonstrated outstanding engagement and consistent growth, particularly excelling in ${top.join(', ').replace(/_/g, ' ')}`
+    : 'has built a verified and structured activity record';
 
   const evidenceBits = [];
-  if (evidenceCounts.learning) evidenceBits.push(`${evidenceCounts.learning} verified learning activities`);
-  if (evidenceCounts.technical) evidenceBits.push(`${evidenceCounts.technical} technical activities`);
-  if (evidenceCounts.leadership) evidenceBits.push(`${evidenceCounts.leadership} leadership activities`);
-  if (evidenceCounts.social) evidenceBits.push(`${evidenceCounts.social} community activities`);
+  if (evidenceCounts.academic_engagement) evidenceBits.push(`${evidenceCounts.academic_engagement} academic milestones and daily classroom engagements`);
+  if (evidenceCounts.learning_orientation) evidenceBits.push(`${evidenceCounts.learning_orientation} instances of deep learning, including library visits and reading sessions`);
+  if (evidenceCounts.technical_engagement) evidenceBits.push(`${evidenceCounts.technical_engagement} technical projects and practical applications`);
+  if (evidenceCounts.creativity) evidenceBits.push(`${evidenceCounts.creativity} creative endeavors, games, and strategy sessions`);
+  if (evidenceCounts.leadership) evidenceBits.push(`${evidenceCounts.leadership} leadership roles and organizational responsibilities`);
+  if (evidenceCounts.extracurricular_involvement) evidenceBits.push(`${evidenceCounts.extracurricular_involvement} extracurricular events and college participations`);
+  if (evidenceCounts.community_participation) evidenceBits.push(`${evidenceCounts.community_participation} community and social service activities`);
 
   const evidenceSentence = evidenceBits.length
-    ? ` This is supported by ${evidenceBits.join(', ')}, all verified by faculty.`
+    ? ` Throughout their academic journey, the candidate's development is evidenced by ${evidenceBits.join(', ')}.`
+    : '';
+
+  const archetypeSentence = assessment.archetype 
+    ? `\n\nOverall, the student embodies the profile of a "${assessment.archetype}", showcasing a holistic character built on verifiable achievements.`
     : '';
 
   const focusSentence = focus.length
-    ? ` Continued growth in ${focus.join(' and ')} is recommended going forward.`
-    : ' The student maintains balanced engagement across development dimensions.';
+    ? ` Moving forward, continued involvement in ${focus.join(' and ').replace(/_/g, ' ')} will further enrich their professional and personal character.`
+    : ' The student maintains a highly balanced and exemplary engagement across all dimensions of character development.';
 
   return (
-    `The student ${strengthPhrase} throughout the academic program.` +
+    `This certificate verifies that the student ${strengthPhrase} during their degree program.` +
     `${evidenceSentence}` +
-    `${focusSentence}`
+    `${focusSentence}` +
+    `${archetypeSentence}`
   );
 }
 

@@ -19,4 +19,4 @@ function initSchema() {
 
 initSchema();
 
-module.exports = db; // Trigger nodemon restart
+module.exports = db;
