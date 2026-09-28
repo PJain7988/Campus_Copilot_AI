@@ -1,23 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Fingerprint, ScanFace, X, CheckCircle, Loader2 } from 'lucide-react';
+import { Fingerprint, ScanFace, X, CheckCircle, Loader2, Scan } from 'lucide-react';
 
 export default function BiometricScannerModal({ isOpen, onClose, onSuccess }) {
   const [step, setStep] = useState('idle');
   const [scanType, setScanType] = useState('face');
-  const [holdProgress, setHoldProgress] = useState(0);
-  const holdIntervalRef = React.useRef(null);
-  const videoRef = React.useRef(null);
-  const streamRef = React.useRef(null);
+  const [scanPhase, setScanPhase] = useState(''); // Text to display during scan
+  
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
 
   useEffect(() => {
     if (isOpen) setStep('idle');
     else stopCamera();
     
-    return () => {
-      stopCamera();
-      clearInterval(holdIntervalRef.current);
-    };
+    return () => stopCamera();
   }, [isOpen]);
 
   const stopCamera = () => {
@@ -27,43 +24,10 @@ export default function BiometricScannerModal({ isOpen, onClose, onSuccess }) {
     }
   };
 
-  const completeScan = () => {
-    setStep('authenticating');
-    stopCamera();
-    setTimeout(() => {
-      setStep('success');
-      setTimeout(() => {
-        onSuccess();
-        onClose();
-      }, 1500);
-    }, 1500);
-  };
-
-  const startHold = () => {
-    if (scanType !== 'fingerprint') return;
-    setHoldProgress(0);
-    holdIntervalRef.current = setInterval(() => {
-      setHoldProgress(p => {
-        if (p >= 100) {
-          clearInterval(holdIntervalRef.current);
-          completeScan();
-          return 100;
-        }
-        return p + 2.5;
-      });
-    }, 50);
-  };
-
-  const endHold = () => {
-    if (scanType !== 'fingerprint' || holdProgress >= 100) return;
-    clearInterval(holdIntervalRef.current);
-    setHoldProgress(0);
-  };
-
   const startScan = async (type) => {
     setScanType(type);
     setStep('scanning');
-    setHoldProgress(0);
+    setScanPhase('Initializing Scanner...');
 
     if (type === 'face') {
       try {
@@ -76,6 +40,24 @@ export default function BiometricScannerModal({ isOpen, onClose, onSuccess }) {
         console.error("Camera access denied or unavailable", err);
       }
     }
+
+    // Sequence of realistic automatic scanning phases
+    setTimeout(() => setScanPhase(type === 'face' ? 'Detecting Facial Landmarks...' : 'Detecting Fingerprint...'), 1500);
+    setTimeout(() => setScanPhase(type === 'face' ? 'Analyzing Depth & Features...' : 'Analyzing Minutiae Points...'), 3500);
+    setTimeout(() => setScanPhase('Matching against Secure Ledger...'), 5500);
+    
+    setTimeout(() => {
+      setStep('authenticating');
+      stopCamera();
+      
+      setTimeout(() => {
+        setStep('success');
+        setTimeout(() => {
+          onSuccess();
+          onClose();
+        }, 2000);
+      }, 1500);
+    }, 7000); // 7 seconds total automatic scan time
   };
 
   if (!isOpen) return null;
@@ -87,7 +69,7 @@ export default function BiometricScannerModal({ isOpen, onClose, onSuccess }) {
         <motion.div 
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           onClick={step === 'idle' ? onClose : undefined}
-          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+          className="absolute inset-0 bg-black/70 backdrop-blur-md"
         />
 
         {/* Modal */}
@@ -111,15 +93,15 @@ export default function BiometricScannerModal({ isOpen, onClose, onSuccess }) {
             )}
           </div>
 
-          <div className="p-8 flex flex-col items-center">
+          <div className="p-8 flex flex-col items-center min-h-[350px] justify-center">
             {step === 'idle' && (
               <div className="w-full flex gap-4">
-                <button onClick={() => startScan('face')} className="flex-1 flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border transition-all hover:bg-white/5 hover:border-brand-500/50" style={{ borderColor: 'var(--border)' }}>
-                  <ScanFace className="w-12 h-12 text-brand-400" />
+                <button onClick={() => startScan('face')} className="flex-1 flex flex-col items-center justify-center gap-3 p-8 rounded-2xl border transition-all hover:bg-white/5 hover:border-brand-500/50 group" style={{ borderColor: 'var(--border)' }}>
+                  <ScanFace className="w-14 h-14 text-brand-400 group-hover:scale-110 transition-transform" />
                   <span className="text-sm font-bold" style={{ color: 'var(--text-secondary)' }}>Face ID</span>
                 </button>
-                <button onClick={() => startScan('fingerprint')} className="flex-1 flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border transition-all hover:bg-white/5 hover:border-emerald-500/50" style={{ borderColor: 'var(--border)' }}>
-                  <Fingerprint className="w-12 h-12 text-emerald-400" />
+                <button onClick={() => startScan('fingerprint')} className="flex-1 flex flex-col items-center justify-center gap-3 p-8 rounded-2xl border transition-all hover:bg-white/5 hover:border-emerald-500/50 group" style={{ borderColor: 'var(--border)' }}>
+                  <Fingerprint className="w-14 h-14 text-emerald-400 group-hover:scale-110 transition-transform" />
                   <span className="text-sm font-bold" style={{ color: 'var(--text-secondary)' }}>Biometric</span>
                 </button>
               </div>
@@ -127,48 +109,40 @@ export default function BiometricScannerModal({ isOpen, onClose, onSuccess }) {
 
             {step === 'scanning' && (
               <div className="flex flex-col items-center">
-                <div 
-                  className={`relative w-48 h-48 sm:w-56 sm:h-56 flex items-center justify-center overflow-hidden rounded-full border-4 ${scanType === 'fingerprint' ? 'cursor-pointer' : ''} select-none touch-none`}
-                  style={{ 
-                    borderColor: scanType === 'face' ? 'rgba(99,102,241,0.3)' : `rgba(16,185,129,${Math.max(0.3, holdProgress/100)})`, 
-                    background: 'rgba(0,0,0,0.2)' 
-                  }}
-                  onMouseDown={startHold}
-                  onMouseUp={endHold}
-                  onMouseLeave={endHold}
-                  onTouchStart={startHold}
-                  onTouchEnd={endHold}
-                >
+                <div className="relative w-56 h-56 flex items-center justify-center overflow-hidden rounded-full border-4 bg-black/20"
+                     style={{ borderColor: scanType === 'face' ? 'rgba(99,102,241,0.4)' : 'rgba(16,185,129,0.4)' }}>
+                  
                   {scanType === 'face' ? (
                     <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover transform -scale-x-100" />
                   ) : (
-                    <Fingerprint className="w-24 h-24" style={{ color: `rgba(16,185,129,${Math.max(0.5, holdProgress/100)})`, transform: `scale(${1 + holdProgress/400})` }} />
+                    <Fingerprint className="w-28 h-28 text-emerald-500 animate-pulse" />
                   )}
                   
-                  {/* Face Target Overlay */}
-                  {scanType === 'face' && (
-                    <div className="absolute inset-0 z-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(transparent 40%, rgba(0,0,0,0.6) 100%)' }}>
-                      <div className="absolute inset-4 border border-brand-500/30 rounded-full" />
-                      <motion.div initial={{ top: 0, opacity: 0 }} animate={{ top: ['0%', '100%', '0%'], opacity: [0, 1, 1, 0] }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }} className="absolute left-0 right-0 h-1 bg-brand-400 shadow-[0_0_15px_rgba(99,102,241,1)] z-10" />
-                    </div>
-                  )}
+                  {/* Automated Scanning Laser */}
+                  <motion.div 
+                    initial={{ top: 0, opacity: 0 }}
+                    animate={{ top: ['0%', '100%', '0%'], opacity: [0, 1, 1, 0] }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                    className={`absolute left-0 right-0 h-1 shadow-[0_0_20px_2px] z-10 ${scanType === 'face' ? 'bg-brand-400 shadow-brand-500' : 'bg-emerald-400 shadow-emerald-500'}`}
+                  />
 
-                  {/* Fingerprint Progress Overlay */}
-                  {scanType === 'fingerprint' && (
-                    <div className="absolute bottom-0 left-0 right-0 bg-emerald-500/20 transition-all duration-75" style={{ height: `${holdProgress}%` }} />
-                  )}
+                  {/* High-tech overlays */}
+                  <div className="absolute inset-0 z-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(transparent 30%, rgba(0,0,0,0.7) 100%)' }}>
+                    <div className={`absolute inset-4 border ${scanType === 'face' ? 'border-brand-500/40' : 'border-emerald-500/40'} rounded-full`} />
+                    <div className={`absolute inset-10 border border-dashed ${scanType === 'face' ? 'border-brand-500/30' : 'border-emerald-500/30'} rounded-full animate-spin-slow`} />
+                  </div>
                 </div>
 
-                <div className="mt-8">
-                  {scanType === 'face' ? (
-                     <button onClick={completeScan} className="btn-primary px-8 py-3 rounded-full text-sm font-bold shadow-lg shadow-brand-500/30 flex items-center gap-2 hover:scale-105 transition-transform">
-                       <ScanFace className="w-5 h-5" /> Capture & Verify
-                     </button>
-                  ) : (
-                     <p className="text-sm font-bold text-emerald-500 animate-pulse bg-emerald-500/10 px-6 py-2 rounded-full border border-emerald-500/20 select-none">
-                       {holdProgress > 0 ? `${Math.floor(holdProgress)}% Scanning...` : 'Press & Hold to Scan'}
-                     </p>
-                  )}
+                <div className="mt-8 flex flex-col items-center">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Scan className={`w-5 h-5 animate-spin ${scanType === 'face' ? 'text-brand-500' : 'text-emerald-500'}`} />
+                    <p className={`text-lg font-black uppercase tracking-widest ${scanType === 'face' ? 'text-brand-500' : 'text-emerald-500'}`}>
+                      Auto-Scan Active
+                    </p>
+                  </div>
+                  <p className="text-sm font-bold text-slate-300 animate-pulse text-center h-6">
+                    {scanPhase}
+                  </p>
                 </div>
               </div>
             )}
@@ -176,8 +150,8 @@ export default function BiometricScannerModal({ isOpen, onClose, onSuccess }) {
             {step === 'authenticating' && (
               <div className="flex flex-col items-center justify-center py-6">
                 <Loader2 className="w-12 h-12 text-brand-400 animate-spin mb-4" />
-                <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Authenticating with Ledger...</p>
-                <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>Retrieving campus activity logs</p>
+                <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>Verifying Secure Ledger...</p>
+                <p className="text-xs mt-2" style={{ color: 'var(--text-muted)' }}>Cryptographically signing activity logs</p>
               </div>
             )}
 
@@ -186,11 +160,13 @@ export default function BiometricScannerModal({ isOpen, onClose, onSuccess }) {
                 initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
                 className="flex flex-col items-center justify-center py-6"
               >
-                <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mb-4 border border-emerald-500/30">
-                  <CheckCircle className="w-8 h-8 text-emerald-500" />
+                <div className="w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center mb-5 border border-emerald-500/30">
+                  <CheckCircle className="w-10 h-10 text-emerald-500" />
                 </div>
-                <p className="text-lg font-black text-emerald-500">Sync Complete!</p>
-                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Activities have been securely logged.</p>
+                <p className="text-2xl font-black text-emerald-500 mb-2">Sync Complete!</p>
+                <p className="text-sm text-center max-w-xs" style={{ color: 'var(--text-secondary)' }}>
+                  Your campus activities and library visits have been successfully verified and added to your profile.
+                </p>
               </motion.div>
             )}
           </div>
