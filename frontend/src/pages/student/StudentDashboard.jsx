@@ -113,9 +113,13 @@ export default function StudentDashboard() {
     finally { setBusy(false); }
   };
 
-  const generateCertificate = async () => {
+  const generateCertificate = async (certificateType = 'Overall Holistic Development') => {
     setBusy(true); setMessage('');
-    try { const { data } = await api.post(`/certificates/${student.id}/generate`); setMessage(`success:Certificate ${data.certificateCode} generated!`); await load(); }
+    try { 
+      const { data } = await api.post(`/certificates/${student.id}/generate`, { certificateType }); 
+      setMessage(`success:Certificate ${data.certificateCode} generated!`); 
+      await load(); 
+    }
     catch { setMessage('error:Certificate generation failed. Complete AI Assessment first.'); }
     finally { setBusy(false); }
   };
@@ -824,6 +828,8 @@ function SkillsTab({ assessment, recommendations, onGoAssess }) {
 }
 
 function CertificateTab({ student, user, certificate, assessment, busy, message, onGenerate }) {
+  const [certType, setCertType] = useState('Overall Holistic Development Certificate');
+  
   return (
     <div className="space-y-6">
       <div>
@@ -889,8 +895,21 @@ function CertificateTab({ student, user, certificate, assessment, busy, message,
                 </div>
               </>
             ) : (
-              <>
-                <button onClick={onGenerate} disabled={busy || !assessment}
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] uppercase tracking-wider text-slate-400 font-bold block">Select Certificate Type</label>
+                  <select 
+                    value={certType} onChange={(e) => setCertType(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-brand-500"
+                  >
+                    <option value="Overall Holistic Development Certificate" className="bg-slate-900">Overall Holistic Development</option>
+                    <option value="Academic Excellence Certificate" className="bg-slate-900">Academic Excellence</option>
+                    <option value="Leadership Certificate" className="bg-slate-900">Leadership</option>
+                    <option value="Community Engagement Certificate" className="bg-slate-900">Community Engagement</option>
+                    <option value="Technical Excellence Certificate" className="bg-slate-900">Technical Excellence</option>
+                  </select>
+                </div>
+                <button onClick={() => onGenerate(certType)} disabled={busy || !assessment}
                   className="btn-primary w-full flex items-center justify-center gap-2 text-sm py-3">
                   {busy
                     ? <><RefreshCw className="w-4 h-4 animate-spin" />Generating…</>
@@ -901,7 +920,7 @@ function CertificateTab({ student, user, certificate, assessment, busy, message,
                     <Zap className="w-3 h-3" /> Complete AI Assessment first
                   </p>
                 )}
-              </>
+              </div>
             )}
           </div>
         </div>
