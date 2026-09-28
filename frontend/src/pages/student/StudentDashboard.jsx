@@ -13,6 +13,7 @@ import api from '../../api/client';
 import { useAuth } from '../../context/AuthContext';
 import Badge from '../../components/Badge';
 import DevelopmentRadar from '../../components/DevelopmentRadar';
+import BiometricScannerModal from '../../components/BiometricScannerModal';
 
 /* ─────────────────────── Icon-safe renderer ────────────────────────────────
    React JSX requires a capitalized identifier — never use obj[key] as a tag. */
@@ -76,6 +77,7 @@ export default function StudentDashboard() {
   const [busy,            setBusy]            = useState(false);
   const [message,         setMessage]         = useState('');
   const [activeTab,       setActiveTab]       = useState('dashboard');
+  const [isScannerOpen,   setIsScannerOpen]   = useState(false);
   const [filterCat,       setFilterCat]       = useState('All');
   const [mobileMenuOpen,  setMobileMenuOpen]  = useState(false);
   const tabsRef = useRef(null);
@@ -270,7 +272,7 @@ export default function StudentDashboard() {
                 certificate={certificate} assessment={assessment}
                 recommendations={recommendations}
                 onRunAssessment={runAssessment} onGoLog={() => switchTab('log')}
-                onViewAll={() => switchTab('activities')} onSyncBiometric={syncBiometric} busy={busy} message={message}
+                onViewAll={() => switchTab('activities')} onSyncBiometric={() => setIsScannerOpen(true)} busy={busy} message={message}
               />
             )}
 
@@ -318,6 +320,12 @@ export default function StudentDashboard() {
           </motion.div>
         </AnimatePresence>
       </div>
+
+      <BiometricScannerModal 
+        isOpen={isScannerOpen} 
+        onClose={() => setIsScannerOpen(false)} 
+        onSuccess={syncBiometric} 
+      />
     </div>
   );
 }
